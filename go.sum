@@ -1,2 +1,8 @@
+github.com/go-ruby-dry-types/dry-types v0.0.0-20260717064401-2277b3319f9b h1:qBGcUJiTlGN8OsEVSLGDERO140+mIGUPAfgt+21rUNo=
+github.com/go-ruby-dry-types/dry-types v0.0.0-20260717064401-2277b3319f9b/go.mod h1:S+2r7EA5zp4E8JyaJ88koD8gT7k/JD9i8NGj6V6jIRM=
+github.com/go-ruby-dry-validation/dry-validation v0.0.0-20260717064428-e2f79baad5cb h1:PVS2ARvPgwS+D0Wjb6d/4XVeZbzONEiBkyu4TAzRuS0=
+github.com/go-ruby-dry-validation/dry-validation v0.0.0-20260717064428-e2f79baad5cb/go.mod h1:LHalD7pLKBYjablQtp55tlPahU5LHCXf0v0mSzmS6zE=
+github.com/go-ruby-erb/erb v0.0.0-20260717064518-1e3bc0812b45 h1:C4HnZxZAm46pyQfkE7ELXCyDisI3Buzg/cR4d2F8dlY=
+github.com/go-ruby-erb/erb v0.0.0-20260717064518-1e3bc0812b45/go.mod h1:HEJVI7jQ/BnjiSiu2Wj934QboEAgdv47RNOqvZb+nRw=
 github.com/go-ruby-rack/rack v0.0.0-20260705200150-888027c33329 h1:4sXRBW9MXaEuosiyzzk1Fh+C8R2+PiPdua5sutdvV+E=
 github.com/go-ruby-rack/rack v0.0.0-20260705200150-888027c33329/go.mod h1:rKZ3vD81gJq61NvZ3XX9cr6AxtIV3+lFZKG7lPKV3PM=

@@ -58,8 +58,11 @@ type Router struct {
 	resolver Resolver
 	mounts   []mount
 
-	// prefixStack accumulates the active scope prefixes during declaration.
+	// prefixStack accumulates the active scope path prefixes during declaration.
 	prefixStack []string
+	// namePrefixStack accumulates the active named-scope name prefixes (Hanami's
+	// `scope path, as:`); empty entries (an anonymous scope) contribute nothing.
+	namePrefixStack []string
 
 	// URL-helper base, used by URL. Defaults to http://localhost.
 	scheme string
@@ -97,11 +100,12 @@ func NewRouter(opts ...RouterOption) *Router {
 // any scope prefix), its parsed segments, the target endpoint and an optional
 // name for the path/URL helpers.
 type Route struct {
-	Method   string
-	Pattern  string
-	Name     string
-	segments []segment
-	endpoint endpoint
+	Method      string
+	Pattern     string
+	Name        string
+	segments    []segment
+	endpoint    endpoint
+	constraints map[string]string
 }
 
 // routeOptions collects the keyword-style options of a route declaration.
@@ -286,11 +290,43 @@ func normalizePrefix(p string) string {
 	return "/" + p
 }
 
-// Scope declares routes under a path prefix. Prefixes nest.
-func (rt *Router) Scope(prefix string, fn func()) {
+// Scope declares routes under a path prefix. Prefixes nest. It is Hanami's
+// anonymous `scope "path" do … end`.
+func (rt *Router) Scope(prefix string, fn func()) { rt.ScopeAs(prefix, "", fn) }
+
+// ScopeAs declares routes under a path prefix and a route-name prefix, matching
+// Hanami's `scope "path", as: :name do … end`. Named routes declared inside are
+// prefixed with as joined by "_" (e.g. `as: :api` + `as: :book` → `api_book`);
+// nested named scopes stack their name prefixes the same way. An empty as makes
+// it a plain path scope (see [Router.Scope]).
+func (rt *Router) ScopeAs(prefix, as string, fn func()) {
 	rt.prefixStack = append(rt.prefixStack, normalizePrefix(prefix))
+	rt.namePrefixStack = append(rt.namePrefixStack, as)
 	fn()
 	rt.prefixStack = rt.prefixStack[:len(rt.prefixStack)-1]
+	rt.namePrefixStack = rt.namePrefixStack[:len(rt.namePrefixStack)-1]
+}
+
+// curNamePrefix joins the non-empty active named-scope prefixes with "_".
+func (rt *Router) curNamePrefix() string {
+	parts := make([]string, 0, len(rt.namePrefixStack))
+	for _, p := range rt.namePrefixStack {
+		if p != "" {
+			parts = append(parts, p)
+		}
+	}
+	return strings.Join(parts, "_")
+}
+
+// scopedName prefixes a route name with the active named-scope prefix.
+func (rt *Router) scopedName(name string) string {
+	if name == "" {
+		return ""
+	}
+	if np := rt.curNamePrefix(); np != "" {
+		return np + "_" + name
+	}
+	return name
 }
 
 // add is the common route-registration path shared by every verb helper.
@@ -300,18 +336,20 @@ func (rt *Router) add(method, path string, ep endpoint, opts []RouteOption) *Rou
 		opt(&o)
 	}
 	full := rt.curPrefix() + normalizePath(path)
+	name := rt.scopedName(o.name)
 	route := &Route{
-		Method:   method,
-		Pattern:  full,
-		Name:     o.name,
-		segments: splitPattern(full),
-		endpoint: ep,
+		Method:      method,
+		Pattern:     full,
+		Name:        name,
+		segments:    splitPattern(full),
+		endpoint:    ep,
+		constraints: o.constraints,
 	}
 	compiled := compileConstraints(o.constraints)
 	rt.root.insert(route, compiled)
 	rt.routes = append(rt.routes, route)
-	if o.name != "" {
-		rt.named[o.name] = route
+	if name != "" {
+		rt.named[name] = route
 	}
 	return route
 }
@@ -380,6 +418,18 @@ func (rt *Router) Redirect(path, target string, status int, opts ...RouteOption)
 		status = 301
 	}
 	return rt.add(rack.MethodGet, path, &redirectEndpoint{to: target, status: status}, opts)
+}
+
+// RedirectPermanent declares a 301 (Moved Permanently) redirect, matching
+// Hanami's `redirect_permanent`.
+func (rt *Router) RedirectPermanent(path, target string, opts ...RouteOption) *Route {
+	return rt.Redirect(path, target, 301, opts...)
+}
+
+// RedirectTemporary declares a 302 (Found) redirect, matching Hanami's
+// `redirect_temporary`.
+func (rt *Router) RedirectTemporary(path, target string, opts ...RouteOption) *Route {
+	return rt.Redirect(path, target, 302, opts...)
 }
 
 // mount is a Rack app attached to a path prefix by [Router.Mount].

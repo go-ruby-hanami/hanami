@@ -15,6 +15,10 @@ import (
 // endpoint is a resolved or resolvable dispatch target for a route.
 type endpoint interface {
 	call(rt *Router, env rack.Env, params *rack.Params) RackResponse
+	// inspect renders the endpoint the way hanami-router's route inspector does
+	// (a `to:` name verbatim, `(proc)` for a Rack callable, `dest (HTTP code)`
+	// for a redirect).
+	inspect() string
 }
 
 // To is the `to:` argument of a route declaration. Build it with [ToName] (an
@@ -46,6 +50,8 @@ func (e *appEndpoint) call(_ *Router, env rack.Env, _ *rack.Params) RackResponse
 	return e.app(env)
 }
 
+func (e *appEndpoint) inspect() string { return "(proc)" }
+
 // nameEndpoint resolves its name through the router's Resolver at dispatch time.
 type nameEndpoint struct{ name string }
 
@@ -60,6 +66,8 @@ func (e *nameEndpoint) call(rt *Router, env rack.Env, _ *rack.Params) RackRespon
 	return app(env)
 }
 
+func (e *nameEndpoint) inspect() string { return e.name }
+
 // redirectEndpoint responds with a redirect to a fixed target.
 type redirectEndpoint struct {
 	to     string
@@ -71,6 +79,10 @@ func (e *redirectEndpoint) call(_ *Router, _ rack.Env, _ *rack.Params) RackRespo
 	h.Set("location", e.to)
 	h.Set(rack.ContentTypeKey, "text/plain; charset=utf-8")
 	return RackResponse{Status: e.status, Headers: h, Body: []string{""}}
+}
+
+func (e *redirectEndpoint) inspect() string {
+	return fmt.Sprintf("%s (HTTP %d)", e.to, e.status)
 }
 
 // --- path / URL helpers ----------------------------------------------------

@@ -28,14 +28,18 @@ binding), but is a **standalone, reusable** module built on
 [go-ruby-erb](https://github.com/go-ruby-erb/erb) (the ERB compiler) and
 [go-ruby-set](https://github.com/go-ruby-set/set).
 
-> **What it is — and isn't (v0.1).** This foundation ships the two standout
-> pieces — the **Router** and the **Action** lifecycle — with two explicit
-> **seams** supplied by the host: the endpoint [`Resolver`](#the-endpoint-resolver-seam)
-> (mapping a `to:` name to a callable) and the action-body
-> [`ActionCall`](#the-actioncall-seam) (the Ruby `handle(request, response)`).
-> The full app/slices/container boot, view rendering, dry-validation params
-> contracts, assets, the CLI and the settings/providers system are **deferred** —
-> see the [Roadmap](#roadmap).
+> **What it is — and isn't.** This ships the framework-core surface: the
+> **Router** (verbs, named + nested/named scopes, params, constraints, globs,
+> `mount`, `redirect`, `recognize`, `resources`/`resource`, route inspection),
+> the **Action** lifecycle, **params contracts** (via
+> [go-ruby-dry-validation](https://github.com/go-ruby-dry-validation/dry-validation)),
+> the Rack-equivalent **middleware** [`App`](app.go), a [`view`](view) layer
+> (context/parts/scopes + a pure-Go interpolation renderer and an ERB-compile
+> seam) and the [`hanami` **CLI**](cli) command surface. Two host **seams** stay
+> explicit: the endpoint [`Resolver`](#the-endpoint-resolver-seam) and the
+> action-body [`ActionCall`](#the-actioncall-seam) (the Ruby `handle`). The
+> dry-system app/slices/container boot, full ERB *evaluation* and assets are
+> **deferred** to the rbgo host — see the [Roadmap](#roadmap).
 
 ## Install
 
@@ -162,29 +166,47 @@ session commit, cookie encoding, content-length) via `rack.Response`.
 | `root`, named routes (`as:`), `path`/`url` helpers (+ leftover params → query) | ✅ |
 | Path params `:id`, globbing `*rest`, per-param regexp constraints | ✅ |
 | Segment-trie recognition (static > dynamic > glob), `404`/`405`+`Allow`, `HEAD`→`GET` | ✅ |
-| `scope` (nested), `redirect`, `mount` (Rack, `SCRIPT_NAME`/`PATH_INFO` split) | ✅ |
+| `scope` (nested + named `as:`), `redirect`(`_permanent`/`_temporary`), `mount` | ✅ |
+| `recognize` (routable?/params/verb/path), route `inspect` (human + CSV) | ✅ |
+| `resources`/`resource` REST generators (`only:`/`except:`, member/collection helpers) | ✅ |
 | Endpoint `resolver` seam (`to:` name → callable) | ✅ |
 | Action lifecycle: `before`/`after`, `halt`, `redirect_to`, status/body/format/headers | ✅ |
-| Params merge + validation **seam**, content negotiation, `handle_exception` | ✅ |
+| Params **contracts** (dry-validation), content negotiation, `handle_exception`, exposures | ✅ |
 | Request/Response over Rack; cookies, flash, session **seam** | ✅ |
+| Rack **middleware** stack (`App`/`Use`), the Rack-equivalent app | ✅ |
+| `View` layer (context/parts/scopes, pure-Go interpolation + ERB-compile seam) | ✅ |
+| `hanami` **CLI** surface (`new`/`server`/`console`/`routes`/`generate`/…) + `--help` | ✅ |
 | App / slices / container boot (dry-system), settings & providers | ⏳ Roadmap |
-| View rendering (hanami-view), assets, params **contracts** (dry-validation) | ⏳ Roadmap |
-| CLI / generators | ⏳ Roadmap |
+| Full ERB **evaluation** in views, assets pipeline, CLI file generation | ⏳ rbgo host |
+
+## Reused sibling libraries
+
+This package composes the go-ruby-* ecosystem rather than reinventing it:
+
+- [go-ruby-rack](https://github.com/go-ruby-rack/rack) — the Rack env, request,
+  response, headers and params model, and cookie/query encoding.
+- [go-ruby-dry-validation](https://github.com/go-ruby-dry-validation/dry-validation)
+  (over [go-ruby-dry-types](https://github.com/go-ruby-dry-types/dry-types)) — the
+  params **contract** engine behind [`ContractValidator`](contract.go).
+- [go-ruby-erb](https://github.com/go-ruby-erb/erb) — HTML-escaping and the
+  ERB→Ruby compilation behind the [`view`](view) package's `CompileERB`.
 
 ## Roadmap
 
-The v0.1 foundation is the Router + Action core. Deferred, in rough priority
-order:
+The Router, Action, params contracts, middleware, View layer and CLI surface are
+in. Still deferred:
 
-1. **hanami-view** rendering (templates, parts, scopes, context) — the natural
-   pair to the action body seam.
-2. **dry-validation** params **contracts** (this pass ships the validation
-   *seam*; the contract DSL is deferred).
-3. The **app / slices / container** boot (dry-system) — auto-registration,
-   providers, the settings system.
-4. **Assets** (hanami-assets) and the **CLI / generators**.
-5. The **rbgo** binding wiring the Ruby `handle` body and endpoint resolution
-   into the seams.
+1. The **app / slices / container** boot (dry-system) — auto-registration,
+   providers, the settings system. This is the one piece that genuinely needs a
+   dry-rb container/DI system.
+2. Full **ERB evaluation** in views (arbitrary Ruby, loops, conditionals): the
+   `view` package renders the pure-Go interpolation subset and compiles ERB to
+   Ruby source via `CompileERB`; evaluating that source is the **rbgo** host's
+   job. Likewise the CLI's file-generating and server/console commands expose
+   their surface here and execute inside a booted app.
+3. **Assets** (hanami-assets).
+4. The **rbgo** binding wiring the Ruby `handle` body, endpoint resolution and
+   ERB evaluation into the seams.
 
 ## Tests & coverage
 
