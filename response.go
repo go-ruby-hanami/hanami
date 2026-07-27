@@ -40,15 +40,16 @@ func formatForMediaType(mt string) string { return formatForMediaTypeMap[mt] }
 // flash — finalised to a Rack tuple by [Action.Call]. Reuses [rack.Response] and
 // [rack.Headers] for finishing (content-length, cookie encoding).
 type Response struct {
-	status  int
-	headers *rack.Headers
-	body    string
-	format  string
-	halted  bool
-	session map[string]any
-	flash   *Flash
-	env     rack.Env
-	cookies []cookieOp
+	status    int
+	headers   *rack.Headers
+	body      string
+	format    string
+	halted    bool
+	session   map[string]any
+	flash     *Flash
+	env       rack.Env
+	cookies   []cookieOp
+	exposures map[string]any
 }
 
 type cookieOp struct {
@@ -60,14 +61,23 @@ type cookieOp struct {
 // newResponse builds a Response with the action's default status and format.
 func newResponse(env rack.Env, status int, format string, session map[string]any, flash *Flash) *Response {
 	return &Response{
-		status:  status,
-		headers: rack.NewHeaders(),
-		format:  format,
-		session: session,
-		flash:   flash,
-		env:     env,
+		status:    status,
+		headers:   rack.NewHeaders(),
+		format:    format,
+		session:   session,
+		flash:     flash,
+		env:       env,
+		exposures: map[string]any{},
 	}
 }
+
+// Expose records a value under key for the view layer (Hanami's exposures — the
+// action-to-view locals bridge). The [View] renders with these as its locals.
+func (r *Response) Expose(key string, value any) { r.exposures[key] = value }
+
+// Exposures returns the values exposed by the action body, the locals a [View]
+// renders with.
+func (r *Response) Exposures() map[string]any { return r.exposures }
 
 // Status returns the response status code.
 func (r *Response) Status() int { return r.status }

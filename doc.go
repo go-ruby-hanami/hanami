@@ -25,10 +25,16 @@
 //   - the action body [ActionCall], the Ruby `handle(request, response)` method,
 //     which reads the [Request] and mutates the [Response].
 //
-// This is the v0.1 foundation for a later rbgo binding. The full app / slices /
-// container boot, hanami-view rendering, dry-validation params contracts,
-// assets, the CLI/generators and the settings/providers system are deferred —
-// see the README roadmap.
+// On top of the Router and Action it adds the framework-core surface: named and
+// nested scopes, [Router.Recognize], the route inspector ([Router.Inspect] /
+// [Router.InspectCSV]), the [Router.Resources]/[Router.Resource] REST
+// generators, params contracts via [ContractValidator] (reusing go-ruby-dry-
+// validation), the Rack-equivalent middleware [App], the [view] package
+// (context/parts/scopes + a pure-Go interpolation renderer and an ERB-compile
+// seam over go-ruby-erb) and the [cli] `hanami` command surface.
+//
+// The dry-system app / slices / container boot, full ERB evaluation in views and
+// the assets pipeline are deferred to the rbgo host — see the README roadmap.
 //
 // [Hanami]: https://hanamirb.org
 package hanami
